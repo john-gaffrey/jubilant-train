@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <errno.h>
 
 #include "matmul_utils.h"
-#define N 768         // Size of the square matrix
+
 #define BLOCK_SIZE 64 // Size of the block, tuned for cache
 
-void multiplyBlocked(int A[N][N], int B[N][N], int C[N][N]) {
+void multiply_in_blocks(int **A, int **B, int **C, int N) {
     // Initialize result matrix C to zero
     for (int i = 0; i < N; i++)
         for (int j = 0; j < N; j++)
@@ -33,35 +34,49 @@ void multiplyBlocked(int A[N][N], int B[N][N], int C[N][N]) {
     }
 }
 
-// Utility to initialize a matrix with random values
-void initMatrix(int mat[N][N]) {
-    for (int i = 0; i < N; i++)
-        for (int j = 0; j < N; j++)
-            mat[i][j] = rand() % 10;
-}
-
 int main(int argc, char* argv[]) {
-    int A[N][N], B[N][N], C[N][N];
+    int N;
+    int **a, **b, **c;
+
+    char *endptr;
     struct timespec start_ts, end_ts, diff_ts;
 
-    initMatrix(A);
-    initMatrix(B);
-
-    clock_gettime(CLOCK_MONOTONIC, &start_ts);
-    multiplyBlocked(A, B, C);
-    clock_gettime(CLOCK_MONOTONIC, &end_ts);
-
-    // diff
-    diff_ts.tv_sec = end_ts.tv_sec - start_ts.tv_sec;
-    diff_ts.tv_nsec = end_ts.tv_nsec - start_ts.tv_nsec;
-    if (end_ts.tv_nsec < start_ts.tv_nsec)
-    {
-        diff_ts.tv_sec -= 1;
-        diff_ts.tv_nsec += 1000000000L;
+    if (argc < 2) {
+        printf("Not enough arguments\n");
+        print_usage(argv[0]);
+        return -1;
     }
 
-    // print runtime in ms
-    printf("%ld\n", diff_ts.tv_sec * 1000L + diff_ts.tv_nsec/1000000);
+    errno = 0;
+    N = strtol(argv[1], &endptr, 10);
+
+    if (errno == ERANGE) {
+        printf("N: `%s` caused overflow/underflow, please try another value\n", argv[1]);
+        return -1;
+    } else if (endptr == argv[1]) {
+        printf("N: `%s` has no digits, please try another value\n", argv[1]);
+        return -1;
+    }
+
+    allocate_matrix(&a, N);
+    allocate_matrix(&b, N);
+    allocate_matrix(&c, N);
+
+    init_matrix(a, N);
+    init_matrix(b, N);
+
+    // run test and take measurements
+    clock_gettime(CLOCK_MONOTONIC, &start_ts);
+    multiply_in_blocks(a, b, c, N);
+    clock_gettime(CLOCK_MONOTONIC, &end_ts);
+
+    calculate_ts_difference(&start_ts, &end_ts, &diff_ts);
+
+    printf("%d\n", timespec_to_ms(&diff_ts));
+
+    free_matrix(a, N);
+    free_matrix(b, N);
+    free_matrix(c, N);
 
     return 0;
 }

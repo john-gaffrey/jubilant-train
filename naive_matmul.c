@@ -1,17 +1,12 @@
 #include <stdio.h>
-#include <time.h>
 #include <stdlib.h>
+#include <time.h>
+#include <errno.h>
 
-#define N 768  // Size of the square matrices
-
-void initMatrix(int mat[N][N]) {
-    for (int i = 0; i < N; i++)
-        for (int j = 0; j < N; j++)
-            mat[i][j] = rand() % 10;
-}
+#include "matmul_utils.h"
 
 // Function to multiply two matrices A and B and store the result in matrix C
-void multiplyMatrices(int A[N][N], int B[N][N], int C[N][N]) {
+void multiply_matrices(int **A, int **B, int **C, int N) {
     // Initialize the result matrix C to zero
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
@@ -29,38 +24,49 @@ void multiplyMatrices(int A[N][N], int B[N][N], int C[N][N]) {
     }
 }
 
-// Function to print a matrix
-void printMatrix(int matrix[N][N]) {
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            printf("%4d", matrix[i][j]);
-        }
-        printf("\n");
-    }
-}
+int main(int argc, char* argv[]) {
+    int N;
+    int **A, **B, **C;
 
-int main() {
-    int A[N][N], B[N][N], C[N][N];
+    char *endptr;
     struct timespec start_ts, end_ts, diff_ts;
 
-    initMatrix(A);
-    initMatrix(B);
-
-    clock_gettime(CLOCK_MONOTONIC, &start_ts);
-    multiplyMatrices(A, B, C);
-    clock_gettime(CLOCK_MONOTONIC, &end_ts);
-
-    // diff
-    diff_ts.tv_sec = end_ts.tv_sec - start_ts.tv_sec;
-    diff_ts.tv_nsec = end_ts.tv_nsec - start_ts.tv_nsec;
-    if (end_ts.tv_nsec < start_ts.tv_nsec)
-    {
-        diff_ts.tv_sec -= 1;
-        diff_ts.tv_nsec += 1000000000L;
+    if (argc < 2) {
+        printf("Not enough arguments\n");
+        print_usage(argv[0]);
+        return -1;
     }
 
-    // print runtime in ms
-    printf("%ld\n", diff_ts.tv_sec * 1000L + diff_ts.tv_nsec/1000000);
+    errno = 0;
+    N = strtol(argv[1], &endptr, 10);
+
+    if (errno == ERANGE) {
+        printf("N: `%s` caused overflow/underflow, please try another value\n", argv[1]);
+        return -1;
+    } else if (endptr == argv[1]) {
+        printf("N: `%s` has no digits, please try another value\n", argv[1]);
+        return -1;
+    }
+
+    allocate_matrix(&A, N);
+    allocate_matrix(&B, N);
+    allocate_matrix(&C, N);
+
+    init_matrix(A, N);
+    init_matrix(B, N);
+
+    // run test and take measurements
+    clock_gettime(CLOCK_MONOTONIC, &start_ts);
+    multiply_matrices(A, B, C, N);
+    clock_gettime(CLOCK_MONOTONIC, &end_ts);
+
+    calculate_ts_difference(&start_ts, &end_ts, &diff_ts);
+
+    printf("%d\n", timespec_to_ms(&diff_ts));
+
+    free_matrix(A, N);
+    free_matrix(B, N);
+    free_matrix(C, N);
 
     return 0;
 }
