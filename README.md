@@ -31,4 +31,4 @@ gcc -O3 -march=native -fno-tree-vectorize -o cache_aware_matmul_opt cache_aware_
     - runs tests a 1024x1024 matrix. Default is 512.
 - `make clean`
 - `make all`
-    - builds all programs, does not run tests
+    - builds all programs, does not run any tests
