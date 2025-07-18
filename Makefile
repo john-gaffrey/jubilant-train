@@ -7,6 +7,10 @@ TARGETS=naive_matmul naive_matmul_opt \
 CFLAGS_NO_OPTIMIZE = -Wall
 CFLAGS_OPTIMIZE = -O3 -march=native -fno-tree-vectorize
 CPPFLAGS =
+UTILS_OBJ = matmul_utils.o
+
+N ?= 512
+BLOCK_SIZE ?= 64
 
 # naive
 CFLAGS_naive_matmul = $(CFLAGS_NO_OPTIMIZE)
@@ -16,19 +20,17 @@ CPPFLAGS_naive_matmul_opt = $(CPPFLAGS)
 
 # cache aware
 CFLAGS_cache_aware_matmul = $(CFLAGS_NO_OPTIMIZE)
-CPPFLAGS_cache_aware_matmul = $(CPPFLAGS) -DBLOCK_SIZE=64
+CPPFLAGS_cache_aware_matmul = $(CPPFLAGS) -DBLOCK_SIZE=$(BLOCK_SIZE) 
 CFLAGS_cache_aware_matmul_opt = $(CFLAGS_OPTIMIZE)
 CPPFLAGS_cache_aware_matmul_opt = $(CPPFLAGS_cache_aware_matmul)
 
 # cache aware, single load/store per sub-block
 CFLAGS_single_load_matmul = $(CFLAGS_NO_OPTIMIZE)
-CPPFLAGS_single_load_matmul = $(CPPFLAGS) -DBLOCK_SIZE=64 -DOPT_LOAD_STORE_OPS=true
+CPPFLAGS_single_load_matmul = $(CPPFLAGS) -DBLOCK_SIZE=$(BLOCK_SIZE) -DOPT_LOAD_STORE_OPS=true
 CFLAGS_single_load_matmul_opt = $(CFLAGS_OPTIMIZE)
 CPPFLAGS_single_load_matmul_opt = $(CPPFLAGS_single_load_matmul)
 
-UTILS_OBJ = matmul_utils.o
-N ?= 512
-MAX_N = 16384 # roughly 3GB of memory
+
 
 all: $(TARGETS)
 
@@ -48,7 +50,7 @@ single_load_matmul_opt: cache_aware_matmul.c $(UTILS_OBJ)
 	$(CC) $(CFLAGS_$@) $(CPPFLAGS_$@) -o $@ $^
 
 .PHONY: test
-test: all
+test: clean all
 	@echo "+--------------------------+-------------+"
 	@printf "|   Results for N=%-8d |  Time (ms)  |\n" ${N}
 	@echo "+--------------------------+-------------+"

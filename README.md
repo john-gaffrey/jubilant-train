@@ -30,12 +30,14 @@ gcc -O3 -march=native -fno-tree-vectorize  -DBLOCK_SIZE=64 -DOPT_LOAD_STORE_OPS=
 ```
 
 ### Other commands:
+- `make test BLOCK_SIZE=128`
+    - overrides the block size for the cache aware implementations. Default is 64.
 - `make test N=1024`
     - runs tests a 1024x1024 matrix. Default is 512.
 - `make test MAX_MATRIX_VAL=200`
     - overrides the upper bound for the random input initialization. Default is 100.
 - `make clean`
-    - deletes all targets
+    - deletes all targets. `make test` currently includes this for better user experience when changing build options.
 - `make all`
     - builds all targets, does not run the tests
 
